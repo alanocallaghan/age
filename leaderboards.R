@@ -74,7 +74,7 @@ ggplot(tg_leaderboard) +
   labs(
     x = "Team game rating", y = "Number of games",
     title = paste(
-      "Team game rating against 1v1 rating\nfor",
+      "Team game rating against games played\nfor",
       format(nrow(merged_leaderboards), big.mark = ","), 
       "AoE2 DE players"
     )
@@ -116,7 +116,7 @@ ggplot(merged_leaderboards, aes(rating_1v1, rating_tg)) +
   geom_smooth(method = "gam") +
   labs(x = "1v1 rating", y = "Team game rating",
     title = paste(
-      "Team game rating against games played\nfor",
+      "Team game rating against 1v1 rating\nfor",
       format(nrow(merged_leaderboards), big.mark = ","), 
       "AoE2 DE players\n"
     )
