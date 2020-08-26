@@ -55,11 +55,27 @@ ggplot(tg_leaderboard) + aes(rating, games) + geom_pointdensity() + scale_colour
 
 
 
-
 merged_leaderboards <- merge(
     leaderboard_1v1, tg_leaderboard,
     by = "profile_id", suffixes=c("_1v1", "_tg"))
 theme_set(theme_bw())
+
+
+png("rating_difference.png", width = 400, height = 400)
+hist(merged_leaderboards$rating_tg - merged_leaderboards$rating_1v1,
+  breaks = "FD",
+  xlab = "Rating difference",
+  main = paste(
+    "Team game rating - 1v1 rating\nacross",
+    format(nrow(merged_leaderboards), big.mark = ","), 
+    "AoE2 DE players"
+  )
+)
+abline(
+  v = median(merged_leaderboards$rating_tg - merged_leaderboards$rating_1v1),
+  lty = "dashed")
+dev.off()
+
 
 ggplot(merged_leaderboards, aes(rating_1v1, rating_tg)) +
   geom_pointdensity() +
