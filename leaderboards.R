@@ -23,6 +23,21 @@ leaderboard_1v1 <- rbind(leaderboard, jl4$leaderboard)
 
 ggplot(leaderboard_1v1) + aes(rating, games) + geom_pointdensity() + scale_colour_viridis(trans="log10")
 
+ggplot(leaderboard_1v1) +
+  aes(rating, games) +
+  geom_pointdensity() +
+  scale_colour_viridis(trans="log10", name = "Local density") +
+  labs(
+    x = "1v1 rating", y = "Number of games",
+    title = paste(
+      "1v1 rating against games played\nfor",
+      format(nrow(merged_leaderboards), big.mark = ","), 
+      "AoE2 DE players"
+    )
+  )
+ggsave("1v1_games.png", width = 7, height = 7)
+
+
 
 
 
@@ -51,7 +66,21 @@ json6 <- jsonlite::prettify(rawToChar(c6$content))
 jl6 <- jsonlite::fromJSON(json6)
 tg_leaderboard <- rbind(tg_leaderboard, jl6$leaderboard)
 
-ggplot(tg_leaderboard) + aes(rating, games) + geom_pointdensity() + scale_colour_viridis(trans="log10")
+
+ggplot(tg_leaderboard) +
+  aes(rating, games) +
+  geom_pointdensity() +
+  scale_colour_viridis(trans="log10", name = "Local density") +
+  labs(
+    x = "Team game rating", y = "Number of games",
+    title = paste(
+      "Team game rating against 1v1 rating\nfor",
+      format(nrow(merged_leaderboards), big.mark = ","), 
+      "AoE2 DE players"
+    )
+  )
+ggsave("tg_games.png", width = 7, height = 7)
+
 
 
 
@@ -61,33 +90,44 @@ merged_leaderboards <- merge(
 theme_set(theme_bw())
 
 
-png("rating_difference.png", width = 400, height = 400)
-hist(merged_leaderboards$rating_tg - merged_leaderboards$rating_1v1,
-  breaks = "FD",
-  xlab = "Rating difference",
-  main = paste(
-    "Team game rating - 1v1 rating\nacross",
-    format(nrow(merged_leaderboards), big.mark = ","), 
-    "AoE2 DE players"
-  )
-)
-abline(
-  v = median(merged_leaderboards$rating_tg - merged_leaderboards$rating_1v1),
-  lty = "dashed")
-dev.off()
+rating_diff <- merged_leaderboards$rating_tg - merged_leaderboards$rating_1v1
+ggplot() +
+  aes(rating_diff) +
+  geom_histogram(bins = nclass.FD(rating_diff), fill = "grey90", colour = "black") +
+  labs(x = "Rating difference",
+    title = paste(
+      "Team game rating minus 1v1 rating\nacross",
+      format(nrow(merged_leaderboards), big.mark = ","), 
+      "AoE2 DE players"
+    )
+  ) +
+  geom_vline(
+    aes(
+      xintercept = median(rating_diff),
+      color = "Median difference"),
+    lty = "dashed") +
+  scale_colour_manual(values = "black", name = NULL)
+ggsave("rating_difference.png", width = 7, height = 7)
 
 
 ggplot(merged_leaderboards, aes(rating_1v1, rating_tg)) +
   geom_pointdensity() +
-  scale_colour_viridis(trans="log10") +
-  geom_smooth(method = "gam")
+  scale_colour_viridis(trans="log10", name = "Local density") +
+  geom_smooth(method = "gam") +
+  labs(x = "1v1 rating", y = "Team game rating",
+    title = paste(
+      "Team game rating against games played\nfor",
+      format(nrow(merged_leaderboards), big.mark = ","), 
+      "AoE2 DE players\n"
+    )
+  )
 ggsave("tg_1v1_gg.png", width = 7, height = 7)
 
 
-model <- gam(rating_tg ~ s(rating_1v1, bs = "cs"), data = merged_leaderboards)
-
 library("mgcv")
 library("visreg")
+
+model <- gam(rating_tg ~ s(rating_1v1, bs = "cs"), data = merged_leaderboards)
 
 visreg(model, gg = TRUE) +
   geom_vline(
