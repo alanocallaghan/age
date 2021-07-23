@@ -2,28 +2,38 @@ library("curl")
 library("ggplot2")
 library("ggpointdensity")
 library("viridis")
+library("glue")
 theme_set(theme_bw())
 
-c1 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=3&start=1&count=10000")
-json1 <- jsonlite::prettify(rawToChar(c1$content))
-jl1 <- jsonlite::fromJSON(json1)
-leaderboard <- jl1$leaderboard
-c2 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=3&start=10001&count=10000")
-json2 <- jsonlite::prettify(rawToChar(c2$content))
-jl2 <- jsonlite::fromJSON(json2)
-leaderboard <- rbind(leaderboard, jl2$leaderboard)
-c3 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=3&start=20001&count=10000")
-json3 <- jsonlite::prettify(rawToChar(c3$content))
-jl3 <- jsonlite::fromJSON(json3)
-leaderboard <- rbind(leaderboard, jl3$leaderboard)
-c4 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=3&start=30001&count=10000")
-json4 <- jsonlite::prettify(rawToChar(c4$content))
-jl4 <- jsonlite::fromJSON(json4)
-leaderboard <- rbind(leaderboard, jl4$leaderboard)
-c5 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=3&start=40001&count=10000")
-json5 <- jsonlite::prettify(rawToChar(c5$content))
-jl5 <- jsonlite::fromJSON(json5)
-leaderboard_1v1 <- rbind(leaderboard, jl5$leaderboard)
+
+lead_ids <- c(rm = 3, trm = 4, ew = 13, tew = 14)
+boards <- list()
+
+get_board <- function(id) {
+  request <- function(id, start) {
+    c <- curl::curl_fetch_memory(glue("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id={id}&start={start}&count=10000"))
+    json <- jsonlite::prettify(rawToChar(c$content))
+    jl <- jsonlite::fromJSON(json)
+    jl$leaderboard
+  }
+  start <- 0
+  leaderboard <- request(id, start)
+  while (TRUE) {
+    current <- request(id, start)
+    if (!length(current)) {
+      break
+    }
+    leaderboard <- rbind(leaderboard, current)
+    start <- start + 10000
+  }
+  leaderboard
+}
+
+for (board in names(lead_ids)) {
+  boards[[board]] <- get_board(lead_ids[[board]])
+}
+
+leaderboard_1v1 <- boards[["rm"]]
 
 
 
@@ -44,45 +54,7 @@ ggplot(leaderboard_1v1) +
   )
 ggsave("1v1_games.png", width = 7, height = 7)
 
-
-
-
-
-c1 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=4&count=10000")
-json1 <- jsonlite::prettify(rawToChar(c1$content))
-jl1 <- jsonlite::fromJSON(json1)
-leaderboard <- jl1$leaderboard
-c2 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=10001&count=10000")
-json2 <- jsonlite::prettify(rawToChar(c2$content))
-jl2 <- jsonlite::fromJSON(json2)
-leaderboard <- rbind(leaderboard, jl2$leaderboard)
-c3 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=20001&count=10000")
-json3 <- jsonlite::prettify(rawToChar(c3$content))
-jl3 <- jsonlite::fromJSON(json3)
-leaderboard <- rbind(leaderboard, jl3$leaderboard)
-c4 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=30001&count=10000")
-json4 <- jsonlite::prettify(rawToChar(c4$content))
-jl4 <- jsonlite::fromJSON(json4)
-tg_leaderboard <- rbind(leaderboard, jl4$leaderboard)
-c5 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=40001&count=10000")
-json5 <- jsonlite::prettify(rawToChar(c5$content))
-jl5 <- jsonlite::fromJSON(json5)
-tg_leaderboard <- rbind(tg_leaderboard, jl5$leaderboard)
-c6 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=50001&count=10000")
-json6 <- jsonlite::prettify(rawToChar(c6$content))
-jl6 <- jsonlite::fromJSON(json6)
-tg_leaderboard <- rbind(tg_leaderboard, jl6$leaderboard)
-c7 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=60001&count=10000")
-json7 <- jsonlite::prettify(rawToChar(c7$content))
-jl7 <- jsonlite::fromJSON(json7)
-tg_leaderboard <- rbind(tg_leaderboard, jl7$leaderboard)
-c8 <- curl::curl_fetch_memory("https://aoe2.net/api/leaderboard?game=aoe2de&leaderboard_id=4&start=70001&count=10000")
-json8 <- jsonlite::prettify(rawToChar(c8$content))
-jl8 <- jsonlite::fromJSON(json8)
-
-tg_leaderboard <- rbind(tg_leaderboard, jl8$leaderboard)
-
-
+tg_leaderboard <- boards[["trm"]]
 
 
 ggplot(tg_leaderboard) +
@@ -100,12 +72,10 @@ ggplot(tg_leaderboard) +
 ggsave("tg_games.png", width = 7, height = 7)
 
 
-
-
 merged_leaderboards <- merge(
-    leaderboard_1v1, tg_leaderboard,
-    by = "profile_id", suffixes=c("_1v1", "_tg"))
-
+  leaderboard_1v1, tg_leaderboard,
+  by = "profile_id", suffixes=c("_1v1", "_tg")
+)
 
 save.image("leaderboards.RData")
 
@@ -142,10 +112,6 @@ ggplot(merged_leaderboards, aes(rating_1v1, rating_tg)) +
     )
   )
 ggsave("tg_1v1_gg.png", width = 7, height = 7)
-
-
-
-
 
 
 ind_filter <- merged_leaderboards$games_1v1 > 20 & merged_leaderboards$games_tg > 20
@@ -241,3 +207,30 @@ visreg(model, gg = TRUE) +
   )
 
 ggsave("tg_1v1_gam.png", width = 7, height = 7)
+
+
+
+
+rm_ew_1v1 <- merge(
+  boards[["rm"]], boards[["ew"]],
+  by = "profile_id", suffixes = c("_rm", "_ew")
+)
+# merged_leaderboards$mean_games <- rowMeans(rm_ew_1v1[, c("games_rm", "games_ew")])
+
+
+ggplot(rm_ew_1v1, aes(rating_rm, rating_ew)) +
+  geom_pointdensity(alpha = 0.5) +
+  scale_colour_viridis(guide = "none") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  # scale_colour_viridis(trans = "log10", name = "Number of games\n(average TG+1v1)") +
+  # geom_smooth(method = "gam") +
+  labs(
+    x = "Random map rating", y = "Empire wars rating",
+    title = paste(
+      "1v1 Empire wars rating against RM rating\nfor",
+      format(nrow(rm_ew_1v1), big.mark = ","),
+      "AoE2 DE players"
+    )
+  )
+
+ggsave("rm_ew_1v1.png", width = 7, height = 7)
